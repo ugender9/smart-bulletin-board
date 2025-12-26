@@ -23,7 +23,7 @@ An intelligent notice management platform that uses **Google's Gemini AI** to au
 
 | Link | Description |
 |------|-------------|
-| 🔗 [Live Application](https://techsprint-smartboard-d0a55.web.app) | Access the running app |
+| 🔗 [Live Application]([https://techsprint-smartboard-d0a55.web.app)](https://techsprint-smartboard-d0a55.web.app) | Access the running app |
 | 💻 [GitHub Repository](https://github.com/ugender9/smart-bulletin-board) | Source code |
 | 📹 [Demo Video](https://www.youtube.com) | 3-minute demo walkthrough |
 | 📊 [Project Presentation](https://docs.google.com/presentation) | Slides & overview |
