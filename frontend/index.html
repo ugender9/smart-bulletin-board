@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Bulletin Board</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .navbar { background: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: bold; }
+        .nav-btn { background: none; border: none; color: white; cursor: pointer; padding: 10px 15px; font-size: 14px; }
+        .nav-btn.active { background: #3498db; border-radius: 4px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .dashboard { display: none; }
+        .dashboard.active { display: block; }
+        .sidebar { float: left; width: 20%; padding-right: 20px; }
+        .main-content { float: left; width: 80%; }
+        .search-box { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        .filter-group { margin-bottom: 20px; }
+        .filter-group label { display: block; font-weight: bold; margin-bottom: 8px; }
+        .filter-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .notices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .notice-card { background: white; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .notice-title { font-weight: bold; margin-bottom: 8px; color: #2c3e50; }
+        .notice-category { display: inline-block; background: #3498db; color: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; }
+        .notice-importance { display: inline-block; margin-left: 8px; padding: 4px 8px; border-radius: 3px; font-size: 12px; }
+        .importance-high { background: #e74c3c; color: white; }
+        .importance-medium { background: #f39c12; color: white; }
+        .importance-low { background: #95a5a6; color: white; }
+        .faculty-form { background: white; padding: 20px; border-radius: 6px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 8px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; }
+        .submit-btn { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .submit-btn:hover { background: #2980b9; }
+        .loading { text-align: center; color: #95a5a6; padding: 20px; }
+        h2 { margin-bottom: 20px; color: #2c3e50; }
+        h3 { margin-bottom: 15px; color: #34495e; }
+    </style>
+
+    <!-- ===== FIREBASE SDK - ADD THIS BEFORE </head> ===== -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+    <script>
+      // Your Firebase configuration - COPY FROM CONSOLE
+      const firebaseConfig = {
+        apiKey: "AIzaSyC8cZnnSirR_h3qmUWqGXDT1TnULViUNKM",
+        authDomain: "techsprint-smartboard-d0a55.firebaseapp.com",
+        databaseURL: "https://techsprint-smartboard-d0a55-default-rtdb.firebaseio.com",
+        projectId: "techsprint-smartboard-d0a55",
+        storageBucket: "techsprint-smartboard-d0a55.firebasestorage.app",
+        messagingSenderId: "437326267964",
+        appId: "1:437326267964:web:c70536d8ec8d3abecae539",
+        measurementId: "G-MEPRGVM17Q"
+      };
+
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+      
+      console.log("✅ Firebase initialized successfully!");
+    </script>
+    <!-- ===== END FIREBASE SDK ===== -->
+
+</head>
+<body>
+    <div class="navbar">
+        <div class="logo">📋 Smart Bulletin Board</div>
+        <div class="nav-links">
+            <button class="nav-btn active" onclick="switchTab('student')">Student View</button>
+            <button class="nav-btn" onclick="switchTab('faculty')">Faculty View</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Student Dashboard -->
+        <section id="studentDash" class="dashboard active">
+            <div class="sidebar">
+                <h3>🔍 Filters</h3>
+                <input type="text" id="searchInput" class="search-box" placeholder="Search notices...">
+                
+                <div class="filter-group">
+                    <label>Category</label>
+                    <select id="categoryFilter" onchange="filterNotices()">
+                        <option value="">All Categories</option>
+                        <option value="Academic">Academic</option>
+                        <option value="Event">Event</option>
+                        <option value="Deadline">Deadline</option>
+                        <option value="Opportunity">Opportunity</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Department</label>
+                    <select id="deptFilter" onchange="filterNotices()">
+                        <option value="">All Departments</option>
+                        <option value="CSE">CSE</option>
+                        <option value="ECE">ECE</option>
+                        <option value="MECH">MECH</option>
+                        <option value="CIVIL">CIVIL</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <h2>Your Personalized Notices</h2>
+                <div id="noticesList" class="notices-grid">
+                    <div class="loading">Loading notices...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Faculty Dashboard -->
+        <section id="facultyDash" class="dashboard">
+            <div class="faculty-form">
+                <h2>📝 Post New Notice</h2>
+                <form id="noticeForm" onsubmit="postNotice(event)">
+                    <div class="form-group">
+                        <label>Notice Title</label>
+                        <input type="text" id="noticeTitle" required placeholder="e.g., CS201 Exam Schedule">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Notice Content</label>
+                        <textarea id="noticeContent" required placeholder="Enter full notice details..." rows="6"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Department</label>
+                        <select id="noticeDept" required>
+                            <option>CSE</option>
+                            <option>ECE</option>
+                            <option>MECH</option>
+                            <option>CIVIL</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">✅ Post Notice</button>
+                </form>
+            </div>
+
+            <div class="faculty-notices">
+                <h2>Your Posted Notices</h2>
+                <div id="facultyNoticesList" class="notices-grid">
+                    <div class="loading">Loading your notices...</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        function switchTab(tab) {
+            document.querySelectorAll('.dashboard').forEach(d => d.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            
+            if (tab === 'student') {
+                document.getElementById('studentDash').classList.add('active');
+                document.querySelectorAll('.nav-btn')[0].classList.add('active');
+                loadNotices();
+            } else {
+                document.getElementById('facultyDash').classList.add('active');
+                document.querySelectorAll('.nav-btn')[1].classList.add('active');
+            }
+        }
+
+        async function loadNotices() {
+            try {
+                const response = await fetch(`${API_URL}/notices`);
+                const data = await response.json();
+                
+                const html = data.notices.map(notice => `
+                    <div class="notice-card">
+                        <div class="notice-title">${notice.title}</div>
+                        <div>
+                            <span class="notice-category">${notice.category}</span>
+                            <span class="notice-importance importance-${notice.importance}">${notice.importance}</span>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('noticesList').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading notices:', error);
+                document.getElementById('noticesList').innerHTML = '<div class="loading">Error loading notices</div>';
+            }
+        }
+
+        async function postNotice(event) {
+            event.preventDefault();
+            
+            const title = document.getElementById('noticeTitle').value;
+            const content = document.getElementById('noticeContent').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/notices`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, content, faculty_id: 'faculty_1' })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('✅ Notice posted successfully!');
+                    document.getElementById('noticeForm').reset();
+                    loadNotices();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Error posting notice: ' + error.message);
+            }
+        }
+
+        function filterNotices() {
+            loadNotices();
+        }
+
+        // Load notices when page loads
+        window.addEventListener('load', function() {
+            loadNotices();
+            console.log("✅ Page loaded and notices initialized");
+        });
+    </script>
+</body>
+</html>
